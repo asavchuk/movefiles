@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -10,8 +11,12 @@ import (
 	egui "github.com/alkresin/external"
 )
 
+var theFileExist = errors.New("The file exists.")
+
 func main() {
-	// go run main.go d:/export/ //SUNSEY2/d$/Temp_Почта/
+	// go run main.go c:/export/ //SUNSEY2/d$/Temp_Почта/
+	// for testing: go run main.go c:/temp/ e:/temp1/
+
 	t := time.Now()                                                         //currentTime
 	t1 := time.Date(t.Year(), t.Month(), t.Day(), 17, 15, 0, 0, time.Local) // time in future
 	diff := t1.Sub(t)
@@ -21,6 +26,7 @@ func main() {
 	}
 
 	time.Sleep(time.Duration(diff.Seconds()) * time.Second)
+
 	err := movefilelist(os.Args[1], os.Args[2])
 	if err != nil {
 		notify(err.Error())
@@ -48,7 +54,14 @@ func movefile(oldpath, newpath string) error {
 	if err != nil {
 		return err
 	}
-	return syscall.MoveFile(from, to) //windows API
+
+	err = syscall.MoveFile(from, to) //windows API
+	if err != nil {                  // i.e. the file exists
+		// log.Println(err)
+		return err
+	}
+
+	return nil
 }
 
 func filenamelist(filepath string) []string {
@@ -67,10 +80,35 @@ func filenamelist(filepath string) []string {
 
 func movefilelist(oldpath, newpath string) error {
 	for _, fi := range filenamelist(oldpath) {
+		log.Println("from", oldpath+fi)
+		log.Println("to", newpath+fi)
+
 		err := movefile(oldpath+fi, newpath+fi)
-		if err != nil {
+
+		if err.Error() == theFileExist.Error() {
+			log.Println(theFileExist)
+			renameAndMoveUntilSuccess(fi, oldpath, newpath)
+		} else {
+			log.Println(err)
 			return err
 		}
 	}
 	return nil
+}
+
+func renameAndMoveUntilSuccess(fi, oldpath, newpath string) {
+	renamed := fi
+	for {
+		// renaming the file until it will be successfully moved
+		renamed = "_" + renamed
+		err := movefile(oldpath+fi, newpath+renamed)
+		if err == nil {
+			break
+		}
+		if err.Error() == theFileExist.Error() {
+			continue
+		}
+		notify(err.Error()) // any other error
+		log.Fatal(err)
+	}
 }
