@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -13,19 +14,25 @@ import (
 
 var theFileExist = errors.New("The file exists.")
 
+func errorHandler() {
+	if r := recover(); r != nil {
+		notify(fmt.Sprintf("%v", r))
+		log.Fatal(r)
+	}
+}
+
 func main() {
 	// go run main.go c:/export/ //SUNSEY2/d$/Temp_Почта/
 	// for testing: go run main.go c:/temp/ e:/temp1/
 
+	defer errorHandler() // in case of runtime errors
+
 	t := time.Now()                                                         //currentTime
 	t1 := time.Date(t.Year(), t.Month(), t.Day(), 17, 15, 0, 0, time.Local) // time in future
 	diff := t1.Sub(t)
-	if diff < 0 {
-		notify("Today is too late")
-		return
+	if diff >= 0 {
+		time.Sleep(time.Duration(diff.Seconds()) * time.Second)
 	}
-
-	time.Sleep(time.Duration(diff.Seconds()) * time.Second)
 
 	err := movefilelist(os.Args[1], os.Args[2])
 	if err != nil {
@@ -100,7 +107,7 @@ func renameAndMoveUntilSuccess(fi, oldpath, newpath string) {
 		renamed = "_" + renamed
 		err := moveFile(oldpath+fi, newpath+renamed)
 		if err == nil {
-			break
+			break // success
 		}
 		if err.Error() == theFileExist.Error() {
 			continue
