@@ -45,7 +45,7 @@ func notify(message string) {
 	egui.Exit()
 }
 
-func movefile(oldpath, newpath string) error {
+func moveFile(oldpath, newpath string) error {
 	from, err := syscall.UTF16PtrFromString(oldpath)
 	if err != nil {
 		return err
@@ -54,17 +54,14 @@ func movefile(oldpath, newpath string) error {
 	if err != nil {
 		return err
 	}
-
 	err = syscall.MoveFile(from, to) //windows API
 	if err != nil {                  // i.e. the file exists
-		// log.Println(err)
 		return err
 	}
-
 	return nil
 }
 
-func filenamelist(filepath string) []string {
+func fileNameList(filepath string) []string {
 	var list []string
 	rd, err := ioutil.ReadDir(filepath)
 	if err != nil {
@@ -79,11 +76,11 @@ func filenamelist(filepath string) []string {
 }
 
 func movefilelist(oldpath, newpath string) error {
-	for _, fi := range filenamelist(oldpath) {
+	for _, fi := range fileNameList(oldpath) {
 		log.Println("from", oldpath+fi)
 		log.Println("to", newpath+fi)
 
-		err := movefile(oldpath+fi, newpath+fi)
+		err := moveFile(oldpath+fi, newpath+fi)
 
 		if err.Error() == theFileExist.Error() {
 			log.Println(theFileExist)
@@ -101,7 +98,7 @@ func renameAndMoveUntilSuccess(fi, oldpath, newpath string) {
 	for {
 		// renaming the file until it will be successfully moved
 		renamed = "_" + renamed
-		err := movefile(oldpath+fi, newpath+renamed)
+		err := moveFile(oldpath+fi, newpath+renamed)
 		if err == nil {
 			break
 		}
