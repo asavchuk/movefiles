@@ -14,10 +14,12 @@ import (
 
 var theFileExist = errors.New("The file exists.")
 
+var errorLog = log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+
 func errorHandler() {
 	if r := recover(); r != nil {
 		notify(fmt.Sprintf("%v", r))
-		log.Fatal(r)
+		errorLog.Fatal(r)
 	}
 }
 
@@ -36,33 +38,26 @@ func main() {
 
 	err := movefilelist(os.Args[1], os.Args[2])
 	if err != nil {
+		errorLog.Println(err)
 		notify(err.Error())
 		return
 	}
 }
 
-func notify(message string) {
-	if egui.Init("") != 0 {
-		return
-	}
-	pWindow := &egui.Widget{X: 100, Y: 100, W: 300, H: 120, Title: "Error"}
-	egui.InitMainWindow(pWindow)
-	pWindow.AddWidget(&egui.Widget{Type: "label", X: 20, Y: 20, W: 245, H: 44, Title: message})
-	pWindow.Activate()
-	egui.Exit()
-}
-
 func moveFile(oldpath, newpath string) error {
 	from, err := syscall.UTF16PtrFromString(oldpath)
 	if err != nil {
+		errorLog.Println(err)
 		return err
 	}
 	to, err := syscall.UTF16PtrFromString(newpath)
 	if err != nil {
+		errorLog.Println(err)
 		return err
 	}
 	err = syscall.MoveFile(from, to) //windows API
-	if err != nil {                  // i.e. the file exists
+	if err != nil {
+		errorLog.Println(err) // i.e. the file exists
 		return err
 	}
 	return nil
@@ -72,7 +67,7 @@ func fileNameList(filepath string) []string {
 	var list []string
 	rd, err := ioutil.ReadDir(filepath)
 	if err != nil {
-		log.Fatal(err)
+		errorLog.Fatal(err)
 	}
 	for _, fi := range rd {
 		if !fi.IsDir() {
@@ -84,16 +79,18 @@ func fileNameList(filepath string) []string {
 
 func movefilelist(oldpath, newpath string) error {
 	for _, fi := range fileNameList(oldpath) {
-		log.Println("from", oldpath+fi)
-		log.Println("to", newpath+fi)
+		// log.Println("from", oldpath+fi)
+		// log.Println("to", newpath+fi)
 
 		err := moveFile(oldpath+fi, newpath+fi)
-
+		if err == nil {
+			continue
+		}
 		if err.Error() == theFileExist.Error() {
-			log.Println(theFileExist)
+			errorLog.Println(theFileExist)
 			renameAndMoveUntilSuccess(fi, oldpath, newpath)
 		} else {
-			log.Println(err)
+			errorLog.Println(err)
 			return err
 		}
 	}
@@ -107,12 +104,26 @@ func renameAndMoveUntilSuccess(fi, oldpath, newpath string) {
 		renamed = "_" + renamed
 		err := moveFile(oldpath+fi, newpath+renamed)
 		if err == nil {
+			errorLog.Println("moved success", newpath+renamed)
 			break // success
 		}
 		if err.Error() == theFileExist.Error() {
 			continue
 		}
-		notify(err.Error()) // any other error
-		log.Fatal(err)
+		if err != nil && err.Error() != theFileExist.Error() { // any other error
+			notify(err.Error())
+			errorLog.Fatal(err)
+		}
 	}
+}
+
+func notify(message string) {
+	if egui.Init("") != 0 {
+		return
+	}
+	pWindow := &egui.Widget{X: 100, Y: 100, W: 300, H: 120, Title: "Error"}
+	egui.InitMainWindow(pWindow)
+	pWindow.AddWidget(&egui.Widget{Type: "label", X: 20, Y: 20, W: 245, H: 44, Title: message})
+	pWindow.Activate()
+	egui.Exit()
 }
