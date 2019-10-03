@@ -26,16 +26,13 @@ func errorHandler() {
 func main() {
 	// go run main.go c:/export/ //SUNSEY2/d$/Temp_Почта/
 	// for testing: go run main.go c:/temp/ e:/temp1/
-
-	defer errorHandler() // in case of runtime errors
-
+	defer errorHandler()                                                    // in case of runtime errors
 	t := time.Now()                                                         //currentTime
 	t1 := time.Date(t.Year(), t.Month(), t.Day(), 17, 15, 0, 0, time.Local) // time in future
 	diff := t1.Sub(t)
 	if diff >= 0 {
 		time.Sleep(time.Duration(diff.Seconds()) * time.Second)
 	}
-
 	err := movefilelist(os.Args[1], os.Args[2])
 	if err != nil {
 		errorLog.Println(err)
