@@ -1,0 +1,9 @@
+.idea
+.DS_Store
+*.exe
+.vagrant
+/_go
+/notes.md
+/ex
+/.vscode
+/movefiles.exe
