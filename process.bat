@@ -1,0 +1,1 @@
+movefiles.exe d:/export/ //SUNSEY2/d$/Temp_Почта/
